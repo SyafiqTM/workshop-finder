@@ -11,6 +11,7 @@ import reviewRoutes from './routes/reviews.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
 
 const app = express();
+const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
@@ -19,7 +20,7 @@ app.use(morgan('dev'));
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 300,
+    max: isProduction ? 300 : 2000,
     standardHeaders: true,
     legacyHeaders: false
   })

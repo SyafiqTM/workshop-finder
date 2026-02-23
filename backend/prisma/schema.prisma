@@ -22,9 +22,12 @@ model Workshop {
   id          String     @id @default(cuid())
   name        String
   address     String
+  city        String
   latitude    Float
   longitude   Float
   phone       String
+  opensAt     String     @default("09:00")
+  closesAt    String     @default("18:00")
   description String
   images      String
   createdAt   DateTime   @default(now())

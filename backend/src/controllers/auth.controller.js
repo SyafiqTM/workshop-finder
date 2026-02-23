@@ -1,7 +1,11 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 
 import prisma from '../services/prisma.service.js';
+
+const googleClient = new OAuth2Client();
 
 function signToken(user) {
   return jwt.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET, {
@@ -79,6 +83,56 @@ export async function me(req, res, next) {
     }
 
     res.json(user);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function googleAuth(req, res, next) {
+  try {
+    const { credential } = req.body;
+
+    const googleClientId = process.env.GOOGLE_CLIENT_ID;
+    if (!googleClientId) {
+      const error = new Error('Google auth is not configured');
+      error.status = 500;
+      throw error;
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: googleClientId
+    });
+
+    const payload = ticket.getPayload();
+    const email = payload?.email?.toLowerCase();
+    if (!email) {
+      const error = new Error('Unable to read Google profile email');
+      error.status = 401;
+      throw error;
+    }
+
+    let user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      const name = payload?.name || 'Google User';
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      user = await prisma.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword
+        }
+      });
+    }
+
+    const token = signToken(user);
+
+    res.json({
+      token,
+      user: { id: user.id, name: user.name, email: user.email }
+    });
   } catch (error) {
     next(error);
   }

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 
 import { useAuth } from '../hooks/useAuth.jsx';
 import api from '../services/api';
+import { getOpenStatus, getWeeklySchedule } from '../utils/openingHours.js';
 
 export default function WorkshopDetailsPage() {
   const { id } = useParams();
@@ -15,6 +16,10 @@ export default function WorkshopDetailsPage() {
   const [error, setError] = useState('');
 
   const reviewCount = useMemo(() => reviews.length, [reviews]);
+  const openStatus = useMemo(() => getOpenStatus(workshop?.opensAt, workshop?.closesAt), [workshop]);
+  const weeklySchedule = useMemo(() => getWeeklySchedule(workshop?.opensAt, workshop?.closesAt), [workshop]);
+  const statusColorClass =
+    openStatus.isOpen === null ? 'text-slate-600' : openStatus.isOpen ? 'text-emerald-600' : 'text-red-600';
 
   const loadData = async () => {
     setError('');
@@ -65,6 +70,18 @@ export default function WorkshopDetailsPage() {
         <p className="mt-1 text-slate-600">{workshop.address}</p>
         <p className="mt-3 text-slate-700">{workshop.description}</p>
         <p className="mt-2 text-sm text-slate-600">Phone: {workshop.phone}</p>
+        <p className={`mt-2 text-sm font-medium ${statusColorClass}`}>
+          {openStatus.message}
+        </p>
+        <div className="mt-2 text-sm text-slate-600">
+          <p className="font-medium text-slate-700">Hours</p>
+          {weeklySchedule.map((day) => (
+            <p key={day.key} className="mt-1">
+              {day.label}: {day.isClosed ? 'Closed' : `${day.opensAt} - ${day.closesAt}`}
+            </p>
+          ))}
+          {!weeklySchedule.length && <p className="mt-1">Hours not available</p>}
+        </div>
         <p className="mt-2 text-sm text-slate-700">
           ⭐ {averageRating} ({reviewCount} reviews)
         </p>

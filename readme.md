@@ -50,7 +50,7 @@ workshop-finder/
 ```bash
 cd backend
 npm install
-copy .env.example .env
+cp .env.example .env
 npx prisma generate
 npx prisma migrate dev --name init
 npm run prisma:seed
@@ -69,7 +69,7 @@ Demo user after seed:
 ```bash
 cd frontend
 npm install
-copy .env.example .env
+cp .env.example .env
 npm run dev
 ```
 
@@ -126,3 +126,28 @@ FRONTEND_URL="http://localhost:5173"
 ```env
 VITE_API_URL="http://localhost:5000"
 ```
+
+## 🐳 Run with Docker
+
+### Backend only (Dockerfile)
+
+```bash
+docker build -t workshop-finder-backend ./backend
+docker run --rm -p 5000:5000 -v workshop_finder_backend_data:/data workshop-finder-backend
+```
+
+### Frontend only (Dockerfile)
+
+```bash
+docker build -t workshop-finder-frontend --build-arg VITE_API_URL=http://localhost:5000 ./frontend
+docker run --rm -p 5173:5173 workshop-finder-frontend
+```
+
+### Full stack (Docker Compose)
+
+```bash
+docker compose up --build
+```
+
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:5000`
