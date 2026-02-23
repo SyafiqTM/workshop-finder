@@ -112,6 +112,12 @@ export async function googleAuth(req, res, next) {
       throw error;
     }
 
+    if (payload?.email_verified === false) {
+      const error = new Error('Google email is not verified');
+      error.status = 401;
+      throw error;
+    }
+
     let user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       const name = payload?.name || 'Google User';

@@ -81,6 +81,7 @@ Frontend runs on `http://localhost:5173`
 
 - `POST /auth/register`
 - `POST /auth/login`
+- `POST /auth/google` (Google sign-in / sign-up)
 - `GET /auth/me` (protected)
 
 ### Workshops
@@ -119,13 +120,21 @@ PORT=5000
 JWT_SECRET="replace-with-a-strong-secret"
 JWT_EXPIRES_IN="7d"
 FRONTEND_URL="http://localhost:5173"
+GOOGLE_CLIENT_ID="your-google-oauth-client-id"
 ```
 
 `frontend/.env`
 
 ```env
 VITE_API_URL="http://localhost:5000"
+VITE_GOOGLE_CLIENT_ID="your-google-oauth-client-id"
 ```
+
+To enable Google sign-in:
+
+- Create an OAuth Client ID in Google Cloud Console (type: Web application)
+- Add authorized JavaScript origins like `http://localhost:5173` (and `http://localhost:5174` if Vite picks another port)
+- Set `GOOGLE_CLIENT_ID` (backend) and `VITE_GOOGLE_CLIENT_ID` (frontend) to that Client ID
 
 ## 🐳 Run with Docker
 
