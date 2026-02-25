@@ -69,11 +69,21 @@ export async function login(req, res, next) {
   }
 }
 
+const PROFILE_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  phone: true,
+  carModel: true,
+  birthday: true,
+  createdAt: true
+};
+
 export async function me(req, res, next) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: { id: true, name: true, email: true, createdAt: true }
+      select: PROFILE_SELECT
     });
 
     if (!user) {
@@ -81,6 +91,28 @@ export async function me(req, res, next) {
       error.status = 404;
       throw error;
     }
+
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateProfile(req, res, next) {
+  try {
+    const { name, phone, carModel, birthday } = req.body;
+
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (phone !== undefined) data.phone = phone || null;
+    if (carModel !== undefined) data.carModel = carModel || null;
+    if (birthday !== undefined) data.birthday = birthday ? new Date(birthday) : null;
+
+    const user = await prisma.user.update({
+      where: { id: req.user.userId },
+      data,
+      select: PROFILE_SELECT
+    });
 
     res.json(user);
   } catch (error) {

@@ -83,10 +83,11 @@ export async function getNearbyWorkshops(req, res, next) {
 
 export async function createWorkshop(req, res, next) {
   try {
-    const workshop = await prisma.workshop.create({
-      data: req.body
-    });
+    const { state, ...rest } = req.body;
+    const data = { ...rest };
+    if (!data.city && state) data.city = state;
 
+    const workshop = await prisma.workshop.create({ data });
     res.status(201).json(workshop);
   } catch (error) {
     next(error);

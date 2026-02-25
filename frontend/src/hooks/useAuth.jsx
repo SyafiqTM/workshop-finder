@@ -58,6 +58,12 @@ export function AuthProvider({ children }) {
         const { data } = await api.get('/auth/me');
         setUser(data);
         localStorage.setItem('wf_user', JSON.stringify(data));
+      },
+      async updateProfile(payload) {
+        const { data } = await api.patch('/auth/me', payload);
+        setUser(data);
+        localStorage.setItem('wf_user', JSON.stringify(data));
+        return data;
       }
     }),
     [token, user]

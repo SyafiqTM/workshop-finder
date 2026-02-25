@@ -2,8 +2,8 @@ import { Link } from 'react-router-dom';
 import { getOpenStatus, getWeeklySchedule } from '../utils/openingHours.js';
 
 export default function WorkshopCard({ workshop, onFavorite, isFavorite, canFavorite = false }) {
-  const openStatus = getOpenStatus(workshop.opensAt, workshop.closesAt);
-  const weeklySchedule = getWeeklySchedule(workshop.opensAt, workshop.closesAt);
+  const openStatus = getOpenStatus(workshop.opensAt, workshop.closesAt, new Date(), workshop.schedule);
+  const weeklySchedule = getWeeklySchedule(workshop.opensAt, workshop.closesAt, workshop.schedule);
   const statusColorClass =
     openStatus.isOpen === null ? 'text-slate-600' : openStatus.isOpen ? 'text-emerald-600' : 'text-red-600';
 
@@ -11,15 +11,21 @@ export default function WorkshopCard({ workshop, onFavorite, isFavorite, canFavo
     <article className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <img src={workshop.images} alt={workshop.name} className="h-44 w-full object-cover" />
       <div className="space-y-3 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="text-lg font-semibold">{workshop.name}</h3>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold leading-snug">{workshop.name}</h3>
           {canFavorite && (
             <button
               type="button"
               onClick={() => onFavorite(workshop.id)}
-              className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium hover:bg-slate-100"
+              className="shrink-0 p-1 transition-opacity hover:opacity-70"
+              aria-label={isFavorite ? 'Unsave' : 'Save'}
             >
-              {isFavorite ? 'Unsave' : 'Save'}
+              <span
+                className="material-icons text-2xl"
+                style={{ color: isFavorite ? '#FBBF24' : '#94a3b8' }}
+              >
+                {isFavorite ? 'bookmark' : 'bookmark_border'}
+              </span>
             </button>
           )}
         </div>
@@ -38,13 +44,16 @@ export default function WorkshopCard({ workshop, onFavorite, isFavorite, canFavo
           <span>{workshop.reviewCount || 0} reviews</span>
           {typeof workshop.distanceKm === 'number' && <span>{workshop.distanceKm} km away</span>}
         </div>
-        <p className="line-clamp-2 text-sm text-slate-600">{workshop.description}</p>
-        <Link
-          to={`/workshops/${workshop.id}`}
-          className="inline-flex rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white"
-        >
-          View details
-        </Link>
+        <div className="flex items-end justify-between">
+          <p className="line-clamp-2 text-sm text-slate-600">{workshop.description}</p>
+          <Link
+            to={`/workshops/${workshop.id}`}
+            className="ml-3 flex shrink-0 items-center justify-center rounded-full bg-slate-900 p-2 text-white hover:bg-slate-700"
+            aria-label="View details"
+          >
+            <span className="material-icons text-[20px] leading-none">arrow_forward</span>
+          </Link>
+        </div>
       </div>
     </article>
   );

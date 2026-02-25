@@ -16,8 +16,8 @@ export default function WorkshopDetailsPage() {
   const [error, setError] = useState('');
 
   const reviewCount = useMemo(() => reviews.length, [reviews]);
-  const openStatus = useMemo(() => getOpenStatus(workshop?.opensAt, workshop?.closesAt), [workshop]);
-  const weeklySchedule = useMemo(() => getWeeklySchedule(workshop?.opensAt, workshop?.closesAt), [workshop]);
+  const openStatus = useMemo(() => getOpenStatus(workshop?.opensAt, workshop?.closesAt, new Date(), workshop?.schedule), [workshop]);
+  const weeklySchedule = useMemo(() => getWeeklySchedule(workshop?.opensAt, workshop?.closesAt, workshop?.schedule), [workshop]);
   const statusColorClass =
     openStatus.isOpen === null ? 'text-slate-600' : openStatus.isOpen ? 'text-emerald-600' : 'text-red-600';
 

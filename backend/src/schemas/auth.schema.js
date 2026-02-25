@@ -14,3 +14,10 @@ export const loginSchema = z.object({
 export const googleAuthSchema = z.object({
   credential: z.string().min(1, 'Missing Google credential')
 });
+
+export const updateProfileSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+  phone: z.string().max(20).optional().nullable(),
+  carModel: z.string().max(100).optional().nullable(),
+  birthday: z.string().optional().nullable()
+});

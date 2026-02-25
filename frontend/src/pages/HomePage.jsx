@@ -148,16 +148,10 @@ export default function HomePage() {
           <button
             type="button"
             onClick={loadNearby}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+            className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white"
           >
-           🗺️ Find Nearby
-          </button>
-          <button
-            type="button"
-            onClick={fetchAll}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
-          >
-            Reset List
+            <span className="material-icons text-[18px] leading-none">location_on</span>
+            Find Nearby
           </button>
           <button
             type="button"
@@ -166,17 +160,27 @@ export default function HomePage() {
           >
             {isMapVisible ? 'Hide Map' : 'Show Map'}
           </button>
-          <select
-            value={selectedCity}
-            onChange={(event) => setSelectedCity(event.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
-          >
-            {cityOptions.map((city) => (
-              <option key={city} value={city}>
-                {city}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedCity}
+              onChange={(event) => setSelectedCity(event.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+            >
+              {cityOptions.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={fetchAll}
+              className="flex items-center justify-center rounded-full border border-slate-300 p-2 text-slate-600 hover:bg-slate-100"
+              aria-label="Reset list"
+            >
+              <span className="material-icons text-[18px] leading-none">refresh</span>
+            </button>
+          </div>
         </div>
       </section>
 
