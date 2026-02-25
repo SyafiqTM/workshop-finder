@@ -19,6 +19,15 @@ async function main() {
     }
   });
 
+  await prisma.user.create({
+    data: {
+      name: 'Admin',
+      email: 'admin@example.com',
+      password,
+      role: 'admin'
+    }
+  });
+
   const workshops = await prisma.workshop.createMany({
     data: [
       {

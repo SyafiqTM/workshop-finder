@@ -2,6 +2,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '../hooks/useAuth.jsx';
+import api from '../services/api';
 
 const navClass = ({ isActive }) =>
   `rounded-md px-3 py-2 text-sm font-medium ${isActive ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'}`;
@@ -12,9 +13,27 @@ export default function Navbar() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isServicesMenuOpen, setIsServicesMenuOpen] = useState(false);
   const [isMobileServicesOpen, setIsMobileServicesOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   const accountMenuRef = useRef(null);
   const servicesMenuRef = useRef(null);
   const servicesHoverTimeout = useRef(null);
+
+  const isAdmin = user?.role === 'admin';
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const fetchPending = () => {
+      Promise.all([
+        api.get('/reviews/admin/pending'),
+        api.get('/workshops/admin/pending')
+      ]).then(([reviews, workshops]) => {
+        setPendingCount(reviews.data.length + workshops.data.length);
+      }).catch(() => {});
+    };
+    fetchPending();
+    const interval = setInterval(fetchPending, 30000);
+    return () => clearInterval(interval);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!isAccountMenuOpen) {
@@ -142,6 +161,20 @@ export default function Navbar() {
               <NavLink to="/profile" className={navClass}>
                 Profile
               </NavLink>
+              {isAdmin && (
+                <NavLink to="/admin" className={({ isActive }) =>
+                  `relative flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium ${
+                    isActive ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+                  }`
+                }>
+                  Admin
+                  {pendingCount > 0 && (
+                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold leading-none text-white">
+                      {pendingCount}
+                    </span>
+                  )}
+                </NavLink>
+              )}
             </>
           )}
 
@@ -242,6 +275,24 @@ export default function Navbar() {
                 <NavLink to="/profile" onClick={closeMenus} className={navClass}>
                   Profile
                 </NavLink>
+                {isAdmin && (
+                  <NavLink
+                    to="/admin"
+                    onClick={closeMenus}
+                    className={({ isActive }) =>
+                      `relative flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium ${
+                        isActive ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+                      }`
+                    }
+                  >
+                    Admin
+                    {pendingCount > 0 && (
+                      <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold leading-none text-white">
+                        {pendingCount}
+                      </span>
+                    )}
+                  </NavLink>
+                )}
               </>
             )}
 

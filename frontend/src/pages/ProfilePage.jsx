@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useAuth } from '../hooks/useAuth.jsx';
+import api from '../services/api';
 
 function formatDateForInput(value) {
   if (!value) return '';
@@ -14,6 +15,8 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [myReviews, setMyReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
 
   const [form, setForm] = useState({
     name: '',
@@ -26,6 +29,11 @@ export default function ProfilePage() {
     refreshProfile().catch((requestError) => {
       setError(requestError.response?.data?.message || 'Unable to load profile');
     });
+
+    api.get('/reviews/user/my')
+      .then((res) => setMyReviews(res.data))
+      .catch(() => {})
+      .finally(() => setReviewsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -79,7 +87,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="container-page">
+    <main className="container-page space-y-6">
       <section className="mx-auto w-full max-w-xl rounded-xl border border-slate-200 bg-white p-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">My Profile</h1>
@@ -180,7 +188,50 @@ export default function ProfilePage() {
           </form>
         )}
       </section>
+
+      {/* My Reviews */}
+      <section className="mx-auto w-full max-w-xl rounded-xl border border-slate-200 bg-white p-6">
+        <h2 className="text-lg font-semibold">My Reviews</h2>
+
+        {reviewsLoading && <p className="mt-3 text-sm text-slate-500">Loading reviews…</p>}
+
+        {!reviewsLoading && myReviews.length === 0 && (
+          <p className="mt-3 text-sm text-slate-500">You have not submitted any reviews yet.</p>
+        )}
+
+        {!reviewsLoading && myReviews.length > 0 && (
+          <div className="mt-4 space-y-3">
+            {myReviews.map((review) => (
+              <article key={review.id} className="rounded-md border border-slate-200 p-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-slate-800">{review.workshop?.name}</span>
+                  <ReviewStatusBadge status={review.status} />
+                </div>
+                <div className="mt-1 flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <span key={s} className={s <= review.rating ? 'text-yellow-400' : 'text-slate-300'}>★</span>
+                  ))}
+                </div>
+                <p className="mt-1 text-slate-600">{review.comment}</p>
+                <p className="mt-1 text-xs text-slate-400">{new Date(review.createdAt).toLocaleDateString()}</p>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </main>
+  );
+}
+
+function ReviewStatusBadge({ status }) {
+  const map = {
+    pending:  { label: 'Pending',  cls: 'bg-amber-100 text-amber-800' },
+    approved: { label: 'Approved', cls: 'bg-emerald-100 text-emerald-800' },
+    rejected: { label: 'Rejected', cls: 'bg-red-100 text-red-700' }
+  };
+  const { label, cls } = map[status] ?? { label: status, cls: 'bg-slate-100 text-slate-600' };
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{label}</span>
   );
 }
 

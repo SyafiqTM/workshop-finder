@@ -13,7 +13,9 @@ export default function WorkshopDetailsPage() {
   const [reviews, setReviews] = useState([]);
   const [averageRating, setAverageRating] = useState(0);
   const [form, setForm] = useState({ rating: 5, comment: '' });
+  const [hoverRating, setHoverRating] = useState(0);
   const [error, setError] = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
   const reviewCount = useMemo(() => reviews.length, [reviews]);
   const openStatus = useMemo(() => getOpenStatus(workshop?.opensAt, workshop?.closesAt, new Date(), workshop?.schedule), [workshop]);
@@ -50,7 +52,8 @@ export default function WorkshopDetailsPage() {
         comment: form.comment
       });
       setForm({ rating: 5, comment: '' });
-      await loadData();
+      setHoverRating(0);
+      setSubmitted(true);
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Failed to submit review');
     }
@@ -91,30 +94,52 @@ export default function WorkshopDetailsPage() {
         <h2 className="text-lg font-semibold">Reviews</h2>
 
         {isAuthenticated && (
-          <form onSubmit={submitReview} className="mt-4 space-y-3">
-            <select
-              value={form.rating}
-              onChange={(event) => setForm((current) => ({ ...current, rating: event.target.value }))}
-              className="w-full rounded-md border border-slate-300 px-3 py-2"
-            >
-              {[5, 4, 3, 2, 1].map((rating) => (
-                <option key={rating} value={rating}>
-                  {rating} Star
-                </option>
-              ))}
-            </select>
-            <textarea
-              required
-              value={form.comment}
-              onChange={(event) => setForm((current) => ({ ...current, comment: event.target.value }))}
-              rows={3}
-              placeholder="Write your experience"
-              className="w-full rounded-md border border-slate-300 px-3 py-2"
-            />
-            <button type="submit" className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white">
-              Submit Review
-            </button>
-          </form>
+          <>
+            {submitted ? (
+              <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                <p className="font-medium">Review submitted!</p>
+                <p className="mt-1">Your review is pending admin approval and will appear once approved.</p>
+                <button
+                  onClick={() => setSubmitted(false)}
+                  className="mt-3 rounded-md bg-amber-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800"
+                >
+                  Write another review
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={submitReview} className="mt-4 space-y-3">
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setForm((c) => ({ ...c, rating: star }))}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      className="text-2xl leading-none focus:outline-none"
+                      aria-label={`${star} star`}
+                    >
+                      <span className={(hoverRating || form.rating) >= star ? 'text-yellow-400' : 'text-slate-300'}>
+                        ★
+                      </span>
+                    </button>
+                  ))}
+                  <span className="ml-2 text-sm text-slate-500">{form.rating} / 5</span>
+                </div>
+                <textarea
+                  required
+                  value={form.comment}
+                  onChange={(event) => setForm((current) => ({ ...current, comment: event.target.value }))}
+                  rows={3}
+                  placeholder="Write your experience"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2"
+                />
+                <button type="submit" className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+                  Submit Review
+                </button>
+              </form>
+            )}
+          </>
         )}
 
         <div className="mt-6 space-y-3">

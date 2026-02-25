@@ -3,18 +3,19 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String     @id @default(cuid())
+  id        Int        @id @default(autoincrement())
   name      String
   email     String     @unique
   password  String
   phone     String?
   carModel  String?
   birthday  DateTime?
+  role      String     @default("user")
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   favorites Favorite[]
@@ -22,7 +23,7 @@ model User {
 }
 
 model Workshop {
-  id          String     @id @default(cuid())
+  id          Int        @id @default(autoincrement())
   name        String
   address     String
   city        String
@@ -31,9 +32,10 @@ model Workshop {
   phone       String
   opensAt     String     @default("09:00")
   closesAt    String     @default("18:00")
-  schedule    String?
-  description String
-  images      String
+  schedule    String?    @db.Text
+  description String     @db.Text
+  images      String     @db.Text
+  status      String     @default("approved")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   favorites   Favorite[]
@@ -41,9 +43,9 @@ model Workshop {
 }
 
 model Favorite {
-  id         String   @id @default(cuid())
-  userId     String
-  workshopId String
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  workshopId Int
   createdAt  DateTime @default(now())
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -53,11 +55,12 @@ model Favorite {
 }
 
 model Review {
-  id         String   @id @default(cuid())
+  id         Int      @id @default(autoincrement())
   rating     Int
-  comment    String
-  userId     String
-  workshopId String
+  comment    String   @db.Text
+  status     String   @default("pending")
+  userId     Int
+  workshopId Int
   createdAt  DateTime @default(now())
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)

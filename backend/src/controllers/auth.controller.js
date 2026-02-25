@@ -8,7 +8,7 @@ import prisma from '../services/prisma.service.js';
 const googleClient = new OAuth2Client();
 
 function signToken(user) {
-  return jwt.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET, {
+  return jwt.sign({ userId: user.id, email: user.email, role: user.role || 'user' }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
 }
@@ -33,7 +33,7 @@ export async function register(req, res, next) {
 
     res.status(201).json({
       token,
-      user: { id: user.id, name: user.name, email: user.email }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role || 'user' }
     });
   } catch (error) {
     next(error);
@@ -62,7 +62,7 @@ export async function login(req, res, next) {
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role || 'user' }
     });
   } catch (error) {
     next(error);
@@ -76,6 +76,7 @@ const PROFILE_SELECT = {
   phone: true,
   carModel: true,
   birthday: true,
+  role: true,
   createdAt: true
 };
 
@@ -169,7 +170,7 @@ export async function googleAuth(req, res, next) {
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role || 'user' }
     });
   } catch (error) {
     next(error);

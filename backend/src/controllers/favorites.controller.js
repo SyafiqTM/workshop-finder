@@ -3,7 +3,7 @@ import prisma from '../services/prisma.service.js';
 export async function addFavorite(req, res, next) {
   try {
     const userId = req.user.userId;
-    const { workshopId } = req.params;
+    const workshopId = parseInt(req.params.workshopId);
 
     const workshop = await prisma.workshop.findUnique({ where: { id: workshopId } });
     if (!workshop) {
@@ -35,7 +35,7 @@ export async function addFavorite(req, res, next) {
 export async function removeFavorite(req, res, next) {
   try {
     const userId = req.user.userId;
-    const { workshopId } = req.params;
+    const workshopId = parseInt(req.params.workshopId);
 
     await prisma.favorite.delete({
       where: {

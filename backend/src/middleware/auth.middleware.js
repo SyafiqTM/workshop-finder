@@ -20,3 +20,12 @@ export function requireAuth(req, _res, next) {
     return next(error);
   }
 }
+
+export function requireAdmin(req, _res, next) {
+  if (!req.user || req.user.role !== 'admin') {
+    const error = new Error('Admin access required');
+    error.status = 403;
+    return next(error);
+  }
+  return next();
+}
