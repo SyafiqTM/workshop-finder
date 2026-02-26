@@ -1,4 +1,5 @@
 const DAY_KEYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const PER_DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 function toMinutes(time) {
   const [hour, minute] = time.split(':').map(Number);
@@ -10,8 +11,7 @@ export function getWeeklySchedule(opensAt, closesAt, scheduleJson) {
   if (scheduleJson) {
     try {
       const parsed = typeof scheduleJson === 'string' ? JSON.parse(scheduleJson) : scheduleJson;
-      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-      return days.map((day) => {
+      return PER_DAY_NAMES.map((day) => {
         const entry = parsed[day];
         if (!entry || entry.off) return { key: day.toLowerCase(), label: day, opensAt: null, closesAt: null, isClosed: true };
         return { key: day.toLowerCase(), label: day, opensAt: entry.opensAt, closesAt: entry.closesAt, isClosed: false };
@@ -36,11 +36,15 @@ export function getOpenStatus(opensAt, closesAt, referenceDate = new Date(), sch
   const schedule = getWeeklySchedule(opensAt, closesAt, scheduleJson);
   if (!schedule.length) return { isOpen: null, message: 'Hours not available' };
 
+  const hasPerDaySchedule =
+    schedule.length === 7 &&
+    schedule.every((entry) => PER_DAY_NAMES.includes(entry.label));
+
   const dayIndex = referenceDate.getDay(); // 0=Sun
   const todayName = DAY_KEYS[dayIndex];
 
   // Per-day schedule path
-  if (scheduleJson) {
+  if (hasPerDaySchedule) {
     const todayEntry = schedule.find((d) => d.label === todayName);
     if (!todayEntry || todayEntry.isClosed) {
       // Find next open day

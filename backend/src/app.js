@@ -12,6 +12,7 @@ import { errorHandler, notFoundHandler } from './middleware/error.middleware.js'
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
+const bodyLimit = process.env.REQUEST_BODY_LIMIT || '10mb';
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
@@ -21,7 +22,8 @@ const allowedOrigins = [
 
 app.use(helmet());
 app.use(cors({ origin: allowedOrigins }));
-app.use(express.json());
+app.use(express.json({ limit: bodyLimit }));
+app.use(express.urlencoded({ extended: true, limit: bodyLimit }));
 app.use(morgan('dev'));
 app.use(
   rateLimit({

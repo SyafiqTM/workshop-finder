@@ -1,6 +1,6 @@
-# 🚗 Workshop Finder (PWA)
+# 🚗 RevHaus (PWA)
 
-Workshop Finder is a full-stack app split into 2 directories:
+RevHaus is a full-stack app split into 2 directories:
 
 - `frontend` → React + Vite + Tailwind + Leaflet + PWA
 - `backend` → Node.js + Express + Prisma + JWT

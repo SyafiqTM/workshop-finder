@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
+import Footer from './components/Footer.jsx';
 import Navbar from './components/Navbar.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AdminRoute from './components/AdminRoute.jsx';
@@ -16,7 +17,7 @@ import WorkshopDetailsPage from './pages/WorkshopDetailsPage.jsx';
 
 export default function App() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <ToastHost />
       <Navbar />
       <Routes>
@@ -36,9 +37,9 @@ export default function App() {
         <Route
           path="/create-workshop"
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <CreateWorkshopPage />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
         <Route
@@ -59,6 +60,7 @@ export default function App() {
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <Footer />
     </div>
   );
 }

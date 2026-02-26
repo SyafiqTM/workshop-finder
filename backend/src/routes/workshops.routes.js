@@ -18,7 +18,7 @@ router.get('/', getWorkshops);
 router.get('/nearby', validateQuery(nearbyQuerySchema), getNearbyWorkshops);
 router.get('/admin/pending', requireAuth, requireAdmin, getPendingWorkshops);
 router.get('/:id', getWorkshopById);
-router.post('/', requireAuth, validateBody(createWorkshopSchema), createWorkshop);
+router.post('/', requireAuth, requireAdmin, validateBody(createWorkshopSchema), createWorkshop);
 router.patch('/:id/status', requireAuth, requireAdmin, updateWorkshopStatus);
 
 export default router;

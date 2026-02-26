@@ -1,7 +1,30 @@
 import { useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import AddressAutocomplete from '../components/AddressAutocomplete';
 import api from '../services/api';
+
+// Map Mapbox region names → MALAYSIA_STATES values
+const REGION_MAP = {
+  'Wilayah Persekutuan Kuala Lumpur': 'Kuala Lumpur',
+  'Federal Territory of Kuala Lumpur': 'Kuala Lumpur',
+  'Wilayah Persekutuan Labuan': 'Labuan',
+  'Federal Territory of Labuan': 'Labuan',
+  'Wilayah Persekutuan Putrajaya': 'Putrajaya',
+  'Federal Territory of Putrajaya': 'Putrajaya',
+  'Pulau Pinang': 'Penang',
+  'Penang Island': 'Penang',
+};
+
+function matchState(region) {
+  if (!region) return '';
+  if (REGION_MAP[region]) return REGION_MAP[region];
+  // Direct match
+  const found = MALAYSIA_STATES.find(
+    (s) => s.toLowerCase() === region.toLowerCase() || region.toLowerCase().includes(s.toLowerCase()),
+  );
+  return found ?? '';
+}
 
 const MALAYSIA_STATES = [
   'Johor', 'Kedah', 'Kelantan', 'Kuala Lumpur', 'Labuan',
@@ -10,6 +33,12 @@ const MALAYSIA_STATES = [
 ];
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+const SERVICES = [
+  'Oil Change', 'Major Service', 'Tyre Change', 'Accessories',
+  'General Repairs', 'Diagnostics', 'Brake Service', 'Engine Tuning',
+  'Aircond Service', 'Battery Service',
+];
 
 const defaultDay = (off = false) => ({ opensAt: '09:00', closesAt: '18:00', off });
 
@@ -96,11 +125,28 @@ function Dropzone({ value, onChange }) {
 }
 
 export default function CreateWorkshopPage() {
+  return (
+    <main className="container-page">
+      <section className="mx-auto w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-6">
+        <h1 className="mb-6 text-2xl font-semibold">Add Workshop</h1>
+        <CreateWorkshopForm />
+      </section>
+    </main>
+  );
+}
+
+export function CreateWorkshopForm({ embedded = false, onCreated }) {
   const navigate = useNavigate();
   const [form, setForm] = useState(initialForm);
   const [schedule, setSchedule] = useState(initialSchedule);
+  const [selectedServices, setSelectedServices] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const toggleService = (s) =>
+    setSelectedServices((prev) =>
+      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
+    );
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
@@ -123,10 +169,15 @@ export default function CreateWorkshopPage() {
         longitude: Number(form.longitude),
         opensAt,
         closesAt,
-        schedule: JSON.stringify(schedule)
+        schedule: JSON.stringify(schedule),
+        services: JSON.stringify(selectedServices),
       };
       const { data } = await api.post('/workshops', payload);
-      navigate(`/workshops/${data.id}`);
+      if (typeof onCreated === 'function') {
+        onCreated(data);
+      } else {
+        navigate(`/workshops/${data.id}`);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Could not create workshop');
     } finally {
@@ -135,17 +186,27 @@ export default function CreateWorkshopPage() {
   };
 
   return (
-    <main className="container-page">
-      <section className="mx-auto w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-6">
-        <h1 className="mb-6 text-2xl font-semibold">Add Workshop</h1>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className={embedded ? 'space-y-4' : 'space-y-4'}>
 
           {/* Basic Info */}
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Basic Info</p>
             <IconInput required icon="store" type="text" placeholder="Workshop name" value={form.name} onChange={setField('name')} />
-            <IconInput required icon="location_on" type="text" placeholder="Street address" value={form.address} onChange={setField('address')} />
+            <AddressAutocomplete
+              value={form.address}
+              placeholder="Search address or place name…"
+              onChange={(val) => setForm((f) => ({ ...f, address: val }))}
+              onSelect={({ address, name, latitude, longitude, region }) => {
+                setForm((f) => ({
+                  ...f,
+                  address,
+                  name: name || f.name,
+                  latitude: String(latitude),
+                  longitude: String(longitude),
+                  state: matchState(region) || f.state,
+                }));
+              }}
+            />
 
             {/* State dropdown */}
             <div className="relative">
@@ -164,52 +225,79 @@ export default function CreateWorkshopPage() {
             <IconInput required icon="phone" type="text" placeholder="Phone number" value={form.phone} onChange={setField('phone')} />
           </div>
 
-          {/* Coordinates */}
-          <div className="space-y-3">
+          {/* Coordinates — auto-filled by address autocomplete, but still editable */}
+          <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Coordinates</p>
             <div className="grid grid-cols-2 gap-3">
               <IconInput required icon="gps_fixed" type="number" step="any" placeholder="Latitude" value={form.latitude} onChange={setField('latitude')} />
               <IconInput required icon="gps_not_fixed" type="number" step="any" placeholder="Longitude" value={form.longitude} onChange={setField('longitude')} />
+            </div>
+            <p className="text-xs text-slate-400">Auto-filled when you pick an address above. You can adjust manually if needed.</p>
+          </div>
+
+          {/* Services */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Services Offered</p>
+            <div className="flex flex-wrap gap-2">
+              {SERVICES.map((s) => {
+                const checked = selectedServices.includes(s);
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => toggleService(s)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      checked
+                        ? 'border-slate-900 bg-slate-900 text-white'
+                        : 'border-slate-300 bg-white text-slate-600 hover:border-slate-400'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Operating Hours */}
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Operating Hours</p>
-            <div className="overflow-hidden rounded-lg border border-slate-200">
-              {DAYS.map((day, i) => (
-                <div key={day} className={`flex items-center gap-3 px-3 py-2.5 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                  <span className="w-24 text-sm font-medium text-slate-700">{day}</span>
-                  {schedule[day].off ? (
-                    <span className="flex-1 text-sm text-slate-400 italic">Off day</span>
-                  ) : (
-                    <div className="flex flex-1 items-center gap-2">
-                      <span className="material-icons text-[16px] text-slate-400">schedule</span>
-                      <input
-                        type="time"
-                        value={schedule[day].opensAt}
-                        onChange={(e) => setDayField(day, 'opensAt', e.target.value)}
-                        className="rounded border border-slate-300 px-2 py-1 text-sm focus:outline-none"
-                      />
-                      <span className="text-slate-400">–</span>
-                      <input
-                        type="time"
-                        value={schedule[day].closesAt}
-                        onChange={(e) => setDayField(day, 'closesAt', e.target.value)}
-                        className="rounded border border-slate-300 px-2 py-1 text-sm focus:outline-none"
-                      />
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setDayField(day, 'off', !schedule[day].off)}
-                    className={`ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${schedule[day].off ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
-                  >
-                    <span className="material-icons text-[14px]">{schedule[day].off ? 'block' : 'check_circle'}</span>
-                    {schedule[day].off ? 'Off' : 'Open'}
-                  </button>
-                </div>
-              ))}
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <div className="min-w-[420px]">
+                {DAYS.map((day, i) => (
+                  <div key={day} className={`flex items-center gap-3 px-3 py-2.5 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                    <span className="w-24 shrink-0 text-sm font-medium text-slate-700">{day}</span>
+                    {schedule[day].off ? (
+                      <span className="flex-1 text-sm text-slate-400 italic">Off day</span>
+                    ) : (
+                      <div className="flex flex-1 items-center gap-2">
+                        <span className="material-icons text-[16px] text-slate-400">schedule</span>
+                        <input
+                          type="time"
+                          value={schedule[day].opensAt}
+                          onChange={(e) => setDayField(day, 'opensAt', e.target.value)}
+                          className="rounded border border-slate-300 px-2 py-1 text-sm focus:outline-none"
+                        />
+                        <span className="text-slate-400">–</span>
+                        <input
+                          type="time"
+                          value={schedule[day].closesAt}
+                          onChange={(e) => setDayField(day, 'closesAt', e.target.value)}
+                          className="rounded border border-slate-300 px-2 py-1 text-sm focus:outline-none"
+                        />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setDayField(day, 'off', !schedule[day].off)}
+                      className={`ml-auto shrink-0 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${schedule[day].off ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
+                    >
+                      <span className="material-icons text-[14px]">{schedule[day].off ? 'block' : 'check_circle'}</span>
+                      {schedule[day].off ? 'Off' : 'Open'}
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -245,7 +333,5 @@ export default function CreateWorkshopPage() {
             {loading ? 'Saving…' : 'Create Workshop'}
           </button>
         </form>
-      </section>
-    </main>
   );
 }

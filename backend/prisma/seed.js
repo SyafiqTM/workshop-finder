@@ -40,6 +40,7 @@ async function main() {
         opensAt: '09:00',
         closesAt: '18:00',
         description: 'General repairs, diagnostics, and periodic maintenance.',
+        services: JSON.stringify(['General Repairs', 'Diagnostics', 'Major Service']),
         images: 'https://images.unsplash.com/photo-1487754180451-c456f719a1fc?q=80&w=1200'
       },
       {
@@ -52,6 +53,7 @@ async function main() {
         opensAt: '09:00',
         closesAt: '19:00',
         description: 'Tyre replacement, wheel balancing, and alignment services.',
+        services: JSON.stringify(['Tyre Change']),
         images: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?q=80&w=1200'
       },
       {
@@ -64,6 +66,7 @@ async function main() {
         opensAt: '09:00',
         closesAt: '19:00',
         description: 'Engine tuning, electrical repairs, and car detailing.',
+        services: JSON.stringify(['Engine Tuning', 'General Repairs']),
         images: 'https://images.unsplash.com/photo-1625047509248-ec889cbff17f?q=80&w=1200'
       },
       {
@@ -76,6 +79,7 @@ async function main() {
         opensAt: '09:00',
         closesAt: '18:00',
         description: 'Brake service, suspension checks, and battery replacement.',
+        services: JSON.stringify(['Brake Service', 'Battery Service']),
         images: 'https://images.unsplash.com/photo-1599256872237-5dcc0fbe9668?q=80&w=1200'
       },
       {
@@ -88,6 +92,7 @@ async function main() {
         opensAt: '09:00',
         closesAt: '18:00',
         description: 'Fast servicing, aircond maintenance, and diagnostics.',
+        services: JSON.stringify(['Major Service', 'Aircond Service', 'Diagnostics']),
         images: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?q=80&w=1200'
       },
       {
@@ -100,6 +105,7 @@ async function main() {
         opensAt: '09:00',
         closesAt: '18:00',
         description: 'Computer diagnostics, fuel system service, and oil change.',
+        services: JSON.stringify(['Diagnostics', 'Oil Change']),
         images: 'https://images.unsplash.com/photo-1625047509248-ec889cbff17f?q=80&w=1200'
       },
       {
@@ -112,6 +118,7 @@ async function main() {
         opensAt: '09:00',
         closesAt: '18:00',
         description: 'General maintenance, brake service, and aircond checks.',
+        services: JSON.stringify(['General Repairs', 'Brake Service', 'Aircond Service']),
         images: 'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a?q=80&w=1200'
       },
       {
@@ -124,6 +131,7 @@ async function main() {
         opensAt: '09:00',
         closesAt: '19:00',
         description: 'Tyre replacement, balancing, battery and alternator services.',
+        services: JSON.stringify(['Tyre Change', 'Battery Service']),
         images: 'https://images.unsplash.com/photo-1498889444388-e67ea62c464b?q=80&w=1200'
       },
       {
@@ -136,6 +144,7 @@ async function main() {
         opensAt: '09:00',
         closesAt: '19:00',
         description: 'Engine diagnostics, transmission servicing, and detailing.',
+        services: JSON.stringify(['Diagnostics', 'Engine Tuning']),
         images: 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1200'
       }
     ]

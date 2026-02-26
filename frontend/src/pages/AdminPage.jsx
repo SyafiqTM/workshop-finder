@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import api from '../services/api';
+import { CreateWorkshopForm } from './CreateWorkshopPage.jsx';
 
 const STATUS_BADGE = {
   pending:  { label: 'Pending',  cls: 'bg-amber-100 text-amber-800' },
@@ -84,8 +85,8 @@ export default function AdminPage() {
   return (
     <main className="container-page">
       <section className="mx-auto w-full max-w-3xl">
-        <h1 className="text-2xl font-semibold text-slate-900">Admin Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-500">Review and approve pending submissions.</p>
+        <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
+        <p className="mt-1 text-sm text-slate-500">Review and approve pending submissions, or add a workshop.</p>
 
         {error && (
           <p className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">{error}</p>
@@ -106,6 +107,12 @@ export default function AdminPage() {
             badge={workshopsBadge}
           >
             Workshops
+          </TabButton>
+          <TabButton
+            active={tab === 'add'}
+            onClick={() => setTab('add')}
+          >
+            Add Workshop
           </TabButton>
         </div>
 
@@ -189,6 +196,14 @@ export default function AdminPage() {
                 />
               </article>
             ))}
+          </div>
+        )}
+
+        {/* Add workshop tab */}
+        {tab === 'add' && (
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white p-6">
+            <h2 className="mb-5 text-lg font-semibold text-slate-900">Add Workshop</h2>
+            <CreateWorkshopForm embedded />
           </div>
         )}
       </section>

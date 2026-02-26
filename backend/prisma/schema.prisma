@@ -34,7 +34,8 @@ model Workshop {
   closesAt    String     @default("18:00")
   schedule    String?    @db.Text
   description String     @db.Text
-  images      String     @db.Text
+  services    String?    @db.Text
+  images      String     @db.LongText
   status      String     @default("approved")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
