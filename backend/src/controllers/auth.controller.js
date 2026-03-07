@@ -76,6 +76,10 @@ const PROFILE_SELECT = {
   phone: true,
   carModel: true,
   birthday: true,
+  currentMileage: true,
+  lastEngineOilChangeMileage: true,
+  lastAtfChangeMileage: true,
+  mileageRecords: true,
   role: true,
   createdAt: true
 };
@@ -101,13 +105,40 @@ export async function me(req, res, next) {
 
 export async function updateProfile(req, res, next) {
   try {
-    const { name, phone, carModel, birthday } = req.body;
+    const {
+      name,
+      phone,
+      carModel,
+      birthday,
+      currentMileage,
+      lastEngineOilChangeMileage,
+      lastAtfChangeMileage,
+      mileageRecords
+    } = req.body;
 
     const data = {};
     if (name !== undefined) data.name = name;
     if (phone !== undefined) data.phone = phone || null;
     if (carModel !== undefined) data.carModel = carModel || null;
     if (birthday !== undefined) data.birthday = birthday ? new Date(birthday) : null;
+    if (currentMileage !== undefined) data.currentMileage = currentMileage ?? null;
+    if (lastEngineOilChangeMileage !== undefined) {
+      data.lastEngineOilChangeMileage = lastEngineOilChangeMileage ?? null;
+    }
+    if (lastAtfChangeMileage !== undefined) {
+      data.lastAtfChangeMileage = lastAtfChangeMileage ?? null;
+    }
+    if (mileageRecords !== undefined) {
+      data.mileageRecords = mileageRecords
+        ? mileageRecords
+          .map((record) => ({
+            mileage: record.mileage,
+            recordedAt: new Date(record.recordedAt).toISOString(),
+            note: record.note || null
+          }))
+          .sort((a, b) => new Date(b.recordedAt) - new Date(a.recordedAt))
+        : null;
+    }
 
     const user = await prisma.user.update({
       where: { id: req.user.userId },

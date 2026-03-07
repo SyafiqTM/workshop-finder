@@ -129,6 +129,43 @@ function LoginPromptModal({ onClose }) {
   );
 }
 
+export function WorkshopCardSkeleton() {
+  return (
+    <article className="rounded-xl border border-slate-200 bg-white shadow-sm animate-pulse">
+      {/* Image placeholder */}
+      <div className="h-44 w-full rounded-t-xl bg-slate-200" />
+      <div className="space-y-3 p-4">
+        {/* Title + bookmark */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="h-5 w-2/3 rounded-md bg-slate-200" />
+          <div className="h-7 w-7 rounded-full bg-slate-200" />
+        </div>
+        {/* Address */}
+        <div className="h-4 w-3/4 rounded-md bg-slate-200" />
+        {/* Status + hours */}
+        <div className="flex items-center gap-3">
+          <div className="h-4 w-20 rounded-md bg-slate-200" />
+          <div className="h-4 w-12 rounded-md bg-slate-200" />
+        </div>
+        {/* Rating */}
+        <div className="flex items-center gap-3">
+          <div className="h-4 w-16 rounded-md bg-slate-200" />
+          <div className="h-4 w-20 rounded-md bg-slate-200" />
+        </div>
+        {/* Pills + arrow */}
+        <div className="flex items-end justify-between">
+          <div className="flex gap-1.5">
+            <div className="h-5 w-16 rounded-full bg-slate-200" />
+            <div className="h-5 w-20 rounded-full bg-slate-200" />
+            <div className="h-5 w-14 rounded-full bg-slate-200" />
+          </div>
+          <div className="h-9 w-9 rounded-full bg-slate-200" />
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function WorkshopCard({ workshop, onFavorite, isFavorite, canFavorite = false }) {
   const openStatus = getOpenStatus(workshop.opensAt, workshop.closesAt, new Date(), workshop.schedule);
   const weeklySchedule = getWeeklySchedule(workshop.opensAt, workshop.closesAt, workshop.schedule);
@@ -161,9 +198,9 @@ export default function WorkshopCard({ workshop, onFavorite, isFavorite, canFavo
   const handleClick = () => { if (isMobile()) setMobileOpen((v) => !v); };
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <article className="group rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
       <div className="overflow-hidden rounded-t-xl">
-        <img src={workshop.images} alt={workshop.name} className="h-44 w-full object-cover" />
+        <img src={workshop.images} alt={workshop.name} className="h-44 w-full object-cover transition-transform duration-300 group-hover:scale-105" />
       </div>
       <div className="space-y-3 p-4">
         <div className="flex items-center justify-between gap-3">
@@ -233,10 +270,14 @@ export default function WorkshopCard({ workshop, onFavorite, isFavorite, canFavo
           <ServicePills services={services} />
           <Link
             to={`/workshops/${workshop.id}`}
-            className="ml-3 flex shrink-0 items-center justify-center rounded-full bg-slate-900 p-2 text-white hover:bg-slate-700"
+            className="workshop-card-link ml-3 flex shrink-0 items-center justify-center rounded-full bg-slate-900 p-2 text-white transition-colors duration-200 hover:bg-slate-700 focus-visible:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
             aria-label="View details"
           >
-            <span className="material-icons text-[20px] leading-none">arrow_forward</span>
+            <span aria-hidden="true" className="workshop-card-link__chevrons">
+              <span className="material-icons workshop-card-link__chevron">chevron_right</span>
+              <span className="material-icons workshop-card-link__chevron">chevron_right</span>
+              <span className="material-icons workshop-card-link__chevron">chevron_right</span>
+            </span>
           </Link>
         </div>
       </div>

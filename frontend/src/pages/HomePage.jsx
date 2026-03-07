@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import MapView from '../components/MapView.jsx';
-import WorkshopCard from '../components/WorkshopCard.jsx';
+import WorkshopCard, { WorkshopCardSkeleton } from '../components/WorkshopCard.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
 import api from '../services/api';
 
 const SEARCH_RADIUS_KM = 5;
+const PAGE_SIZE = 6;
 
 const ALL_SERVICES = [
   'Oil Change',
@@ -19,117 +20,6 @@ const ALL_SERVICES = [
   'Aircond Service',
   'Battery Service',
 ];
-
-function ServiceTagInput({ selectedServices, onChange }) {
-  const [inputValue, setInputValue] = useState('');
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef(null);
-  const inputRef = useRef(null);
-
-  const suggestions = useMemo(() => {
-    const q = inputValue.trim().toLowerCase();
-    return ALL_SERVICES.filter(
-      (s) => !selectedServices.includes(s) && (q === '' || s.toLowerCase().includes(q))
-    );
-  }, [inputValue, selectedServices]);
-
-  const addService = (service) => {
-    if (service && !selectedServices.includes(service)) {
-      onChange([...selectedServices, service]);
-    }
-    setInputValue('');
-    setOpen(false);
-    inputRef.current?.focus();
-  };
-
-  const removeService = (service) => {
-    onChange(selectedServices.filter((s) => s !== service));
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const exact = ALL_SERVICES.find(
-        (s) => s.toLowerCase() === inputValue.trim().toLowerCase()
-      );
-      const first = suggestions[0];
-      if (exact) addService(exact);
-      else if (first && suggestions.length === 1) addService(first);
-      else if (first) addService(first); // pick first match on Enter
-    } else if (e.key === 'Backspace' && inputValue === '' && selectedServices.length > 0) {
-      onChange(selectedServices.slice(0, -1));
-    } else if (e.key === 'Escape') {
-      setOpen(false);
-    }
-  };
-
-  // close on outside click
-  useEffect(() => {
-    const handler = (e) => {
-      if (!containerRef.current?.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  return (
-    <div ref={containerRef} className="relative">
-      <label className="mb-1.5 block text-xs font-medium text-slate-500 uppercase tracking-wide">
-        Filter by services
-      </label>
-
-      {/* Tag + input row */}
-      <div
-        className="flex min-h-[2.4rem] flex-wrap items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2 py-1.5 cursor-text focus-within:border-slate-500"
-        onClick={() => inputRef.current?.focus()}
-      >
-        {selectedServices.map((s) => (
-          <span
-            key={s}
-            className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-2.5 py-0.5 text-xs font-medium text-white"
-          >
-            {s}
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); removeService(s); }}
-              className="ml-0.5 leading-none hover:opacity-70"
-              aria-label={`Remove ${s}`}
-            >
-              <span className="material-icons text-[13px] leading-none">close</span>
-            </button>
-          </span>
-        ))}
-        <input
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={(e) => { setInputValue(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={handleKeyDown}
-          placeholder={selectedServices.length ? '' : 'Type a service and press Enter…'}
-          className="min-w-[160px] flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
-        />
-      </div>
-
-      {/* Dropdown */}
-      {open && suggestions.length > 0 && (
-        <ul className="absolute z-20 mt-1 max-h-52 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg text-sm">
-          {suggestions.map((s) => (
-            <li key={s}>
-              <button
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); addService(s); }}
-                className="w-full px-3 py-1.5 text-left text-slate-700 hover:bg-slate-100"
-              >
-                {s}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 function haversineDistanceKm(lat1, lng1, lat2, lng2) {
   const toRadians = (value) => (value * Math.PI) / 180;
@@ -156,7 +46,18 @@ export default function HomePage() {
   const [userCoords, setUserCoords] = useState(null);
   const [isMapVisible, setIsMapVisible] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedServices, setSelectedServices] = useState([]);
+  const [sortBy, setSortBy] = useState('default');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const sentinelRef = useRef(null);
+
+  // Debounce search input by 350 ms
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const nearbyWorkshops = useMemo(() => {
     if (!locationFilterActive || !userCoords) {
@@ -185,8 +86,8 @@ export default function HomePage() {
       result = result.filter((w) => (w.city || 'Other') === selectedCity);
     }
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.trim().toLowerCase();
       result = result.filter(
         (w) =>
           w.name.toLowerCase().includes(q) ||
@@ -206,19 +107,56 @@ export default function HomePage() {
       });
     }
 
+    if (sortBy === 'rating') {
+      result = [...result].sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+    } else if (sortBy === 'distance') {
+      result = [...result].sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+    } else if (sortBy === 'name') {
+      result = [...result].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
     return result;
-  }, [nearbyWorkshops, selectedCity, searchQuery, selectedServices]);
+  }, [nearbyWorkshops, selectedCity, debouncedSearch, selectedServices, sortBy]);
+  // Reset visible count whenever the filtered result set changes
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [filteredWorkshops]);
+
+  // Infinite scroll: reveal more cards when the sentinel enters view
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && visibleCount < filteredWorkshops.length && !isLoadingMore) {
+          setIsLoadingMore(true);
+          setTimeout(() => {
+            setVisibleCount((c) => Math.min(c + PAGE_SIZE, filteredWorkshops.length));
+            setIsLoadingMore(false);
+          }, 1200);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [filteredWorkshops.length, visibleCount, isLoadingMore]);
+
+  const visibleWorkshops = useMemo(
+    () => filteredWorkshops.slice(0, visibleCount),
+    [filteredWorkshops, visibleCount]
+  );
+
   const groupedWorkshops = useMemo(() => {
-    return filteredWorkshops.reduce((groups, workshop) => {
+    return visibleWorkshops.reduce((groups, workshop) => {
       const cityName = workshop.city || 'Other';
       if (!groups[cityName]) {
         groups[cityName] = [];
       }
-
       groups[cityName].push(workshop);
       return groups;
     }, {});
-  }, [filteredWorkshops]);
+  }, [visibleWorkshops]);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -235,7 +173,9 @@ export default function HomePage() {
       setUserCoords(null);
       setSelectedCity('All');
       setSearchQuery('');
+      setDebouncedSearch('');
       setSelectedServices([]);
+      setSortBy('default');
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Could not load workshops');
     } finally {
@@ -290,17 +230,17 @@ export default function HomePage() {
   return (
     <main className="container-page space-y-6">
       {/* ── Hero: title + map controls only ── */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h1 className="text-2xl font-semibold">Find trusted nearby workshops</h1>
-        <p className="mt-1 text-slate-600">Browse, save favorites, review service quality, and view locations on map.</p>
+      <section className="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-6 text-white shadow-sm">
+        <h1 className="text-2xl font-bold tracking-tight">Find trusted nearby workshops</h1>
+        <p className="mt-1 text-slate-300 text-sm">Browse, save favourites, read reviews, and view locations on the map.</p>
         {locationFilterActive && userCoords && (
-          <p className="mt-1 text-sm text-slate-500">Showing workshops within {SEARCH_RADIUS_KM} km of your location.</p>
+          <p className="mt-1 text-xs text-slate-400">Showing workshops within {SEARCH_RADIUS_KM} km of your location.</p>
         )}
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-5 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={loadNearby}
-            className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow hover:bg-slate-100 transition"
           >
             <span className="material-icons text-[18px] leading-none">location_on</span>
             Find Nearby
@@ -308,7 +248,7 @@ export default function HomePage() {
           <button
             type="button"
             onClick={() => setIsMapVisible((v) => !v)}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition"
           >
             {isMapVisible ? 'Hide Map' : 'Show Map'}
           </button>
@@ -316,16 +256,16 @@ export default function HomePage() {
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+              className="rounded-full border border-white/30 bg-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/30"
             >
               {cityOptions.map((city) => (
-                <option key={city} value={city}>{city}</option>
+                <option key={city} value={city} className="text-slate-900">{city}</option>
               ))}
             </select>
             <button
               type="button"
               onClick={fetchAll}
-              className="flex items-center justify-center rounded-full border border-slate-300 p-2 text-slate-600 hover:bg-slate-100"
+              className="flex items-center justify-center rounded-full border border-white/30 p-2 text-white hover:bg-white/10 transition"
               aria-label="Reset all filters"
             >
               <span className="material-icons text-[18px] leading-none">refresh</span>
@@ -337,7 +277,11 @@ export default function HomePage() {
       {error && <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">{error}</p>}
 
       {loading ? (
-        <p>Loading workshops…</p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+            <WorkshopCardSkeleton key={i} />
+          ))}
+        </div>
       ) : (
         <>
           {/* ── Map ── */}
@@ -346,45 +290,85 @@ export default function HomePage() {
           )}
 
           {/* ── Search + service filter (below map) ── */}
-          <section className="rounded-xl border border-slate-200 bg-white p-4 space-y-4">
-            {/* Search box */}
-            <div className="relative">
-              <span className="material-icons pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">search</span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search workshops by name or location…"
-                className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-9 text-sm text-slate-700 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  aria-label="Clear search"
-                >
-                  <span className="material-icons text-[18px] leading-none">close</span>
-                </button>
-              )}
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+            {/* Row: search input + sort */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="material-icons pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">search</span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search workshops by name or location…"
+                  className="w-full rounded-full border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-9 text-sm text-slate-700 placeholder:text-slate-400 transition focus:border-slate-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-100"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); setDebouncedSearch(''); }}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    aria-label="Clear search"
+                  >
+                    <span className="material-icons text-[18px] leading-none">close</span>
+                  </button>
+                )}
+              </div>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 transition focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-100"
+              >
+                <option value="default">Sort: Default</option>
+                <option value="rating">Top Rated</option>
+                <option value="distance">Nearest</option>
+                <option value="name">A – Z</option>
+              </select>
             </div>
 
-            {/* Multi-select service tag input */}
-            <ServiceTagInput selectedServices={selectedServices} onChange={setSelectedServices} />
+            {/* Quick-select service chips */}
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">Filter by services</p>
+              <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                {ALL_SERVICES.map((s) => {
+                  const active = selectedServices.includes(s);
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() =>
+                        active
+                          ? setSelectedServices(selectedServices.filter((x) => x !== s))
+                          : setSelectedServices([...selectedServices, s])
+                      }
+                      className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition ${
+                        active
+                          ? 'border-slate-900 bg-slate-900 text-white'
+                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-400 hover:bg-white'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-            {/* Active filter summary */}
-            {(selectedServices.length > 0 || searchQuery.trim()) && (
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>{filteredWorkshops.length} workshop{filteredWorkshops.length !== 1 ? 's' : ''} found</span>
+            {/* Result count + clear */}
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <span>
+                <span className="font-semibold text-slate-700">{filteredWorkshops.length}</span>{' '}
+                workshop{filteredWorkshops.length !== 1 ? 's' : ''} found
+              </span>
+              {(selectedServices.length > 0 || debouncedSearch.trim()) && (
                 <button
                   type="button"
-                  onClick={() => { setSearchQuery(''); setSelectedServices([]); }}
-                  className="text-slate-400 hover:text-slate-700 underline underline-offset-2"
+                  onClick={() => { setSearchQuery(''); setDebouncedSearch(''); setSelectedServices([]); }}
+                  className="font-medium text-slate-600 underline underline-offset-2 hover:text-slate-900"
                 >
                   Clear filters
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </section>
 
           {/* ── Results ── */}
@@ -399,6 +383,7 @@ export default function HomePage() {
                 type="button"
                 onClick={() => {
                   setSearchQuery('');
+                  setDebouncedSearch('');
                   setSelectedServices([]);
                   setSelectedCity('All');
                   loadNearby();
@@ -410,22 +395,33 @@ export default function HomePage() {
               </button>
             </div>
           ) : (
-            Object.entries(groupedWorkshops).map(([cityName, cityWorkshops]) => (
-              <section key={cityName} className="space-y-3">
-                <h2 className="text-xl font-semibold">{cityName}</h2>
+            <>
+              {Object.entries(groupedWorkshops).map(([cityName, cityWorkshops]) => (
+                <section key={cityName} className="space-y-3">
+                  <h2 className="text-xl font-semibold">{cityName}</h2>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {cityWorkshops.map((workshop) => (
+                      <WorkshopCard
+                        key={workshop.id}
+                        workshop={workshop}
+                        canFavorite={isAuthenticated}
+                        isFavorite={favoriteIds.includes(workshop.id)}
+                        onFavorite={toggleFavorite}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+              {/* Infinite scroll sentinel */}
+              <div ref={sentinelRef} className="h-4" />
+              {isLoadingMore && (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {cityWorkshops.map((workshop) => (
-                    <WorkshopCard
-                      key={workshop.id}
-                      workshop={workshop}
-                      canFavorite={isAuthenticated}
-                      isFavorite={favoriteIds.includes(workshop.id)}
-                      onFavorite={toggleFavorite}
-                    />
+                  {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                    <WorkshopCardSkeleton key={i} />
                   ))}
                 </div>
-              </section>
-            ))
+              )}
+            </>
           )}
         </>
       )}
