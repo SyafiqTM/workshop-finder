@@ -16,8 +16,9 @@ const bodyLimit = process.env.REQUEST_BODY_LIMIT || '10mb';
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  'https://workshop-finder.vercel.app',
   'http://localhost:5173',
-  'http://localhost:5174'
+  'http://127.0.0.1:5173'
 ].filter(Boolean);
 
 app.use(helmet());
