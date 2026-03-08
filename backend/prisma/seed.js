@@ -1,6 +1,18 @@
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 
+import { buildDatabaseUrl, maskDatabaseUrl } from '../src/utils/database-url.js';
+
+const databaseUrl = buildDatabaseUrl();
+
+if (!databaseUrl) {
+  throw new Error(
+    'DATABASE_URL is not set. Provide DATABASE_URL directly or DBS_CONNECTION/DBS_HOST/DBS_PORT/DBS_DATABASE/DBS_USERNAME/DBS_PASSWORD.'
+  );
+}
+
+process.env.DATABASE_URL = databaseUrl;
+
 const prisma = new PrismaClient();
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const roundTheClockSchedule = JSON.stringify(
@@ -15,6 +27,8 @@ const twentyFourHourAvailability = {
 };
 
 async function main() {
+  console.log(`Seeding database ${maskDatabaseUrl(databaseUrl)}`);
+
   await prisma.review.deleteMany();
   await prisma.favorite.deleteMany();
   await prisma.workshop.deleteMany();
