@@ -34,9 +34,12 @@ app.use(
   })
 );
 
-app.get('/health', (_req, res) => {
+const healthcheckHandler = (_req, res) => {
   res.json({ status: 'ok' });
-});
+};
+
+app.get('/health', healthcheckHandler);
+app.get('/healthcheck', healthcheckHandler);
 
 app.use('/auth', authRoutes);
 app.use('/workshops', workshopRoutes);
