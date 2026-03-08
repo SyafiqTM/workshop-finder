@@ -160,3 +160,12 @@ docker compose up --build
 
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:5000`
+
+The backend container accepts either a full `DATABASE_URL` or these split variables and will assemble the connection string at startup:
+
+- `DBS_CONNECTION`
+- `DBS_HOST`
+- `DBS_PORT`
+- `DBS_DATABASE`
+- `DBS_USERNAME`
+- `DBS_PASSWORD`
